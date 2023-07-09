@@ -1,0 +1,16 @@
+[imap]
+host = ""
+port = 0
+
+username = ""
+password = ""
+
+[smtp]
+host = ""
+port = 0
+
+username = ""
+password = ""
+
+[forward]
+to = []
