@@ -9,5 +9,6 @@ edition = "2021"
 anyhow = "1.0.71"
 imap = "2.4.1"
 lettre = "0.10.4"
+native-tls = "0.2.11"
 serde = { version = "1.0.170", features = ["derive"] }
 toml = "0.7.6"

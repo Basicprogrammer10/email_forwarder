@@ -1,14 +1,11 @@
-use std::fs;
-
 use anyhow::Result;
 
+mod app;
 mod config;
 
 fn main() -> Result<()> {
-    let raw_config = fs::read_to_string("config.toml")?;
-    let config = toml::from_str::<config::Config>(&raw_config)?;
-
-    dbg!(config);
+    let mut app = app::App::new("config.toml")?;
+    app.check_emails()?;
 
     Ok(())
 }
