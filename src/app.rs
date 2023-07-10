@@ -38,9 +38,10 @@ impl App {
 
                 Ok(conn.build().unwrap().connect(domain, tcp)?)
             })?;
-        let imap = imap_client
+        let mut imap = imap_client
             .login(&config.imap.username, &config.imap.password)
             .unwrap();
+        imap.debug = true;
 
         let smtp_credentials = Credentials::new(
             config.smtp.username.to_owned(),
@@ -55,22 +56,26 @@ impl App {
     }
 
     pub fn check_emails(&mut self) -> Result<Vec<Vec<u8>>> {
-        self.imap.select("INBOX")?;
+        self.imap.examine("INBOX")?;
 
+        let search = self.imap.search("ALL")?;
         let mut messages = Vec::new();
-        for i in self.imap.fetch("1", "RFC822")?.iter() {
-            let body = i.body().unwrap_or_default();
+
+        for i in search.iter() {
+            let msg = match self.imap.fetch(i.to_string(), "RFC822") {
+                Ok(x) => x,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    continue;
+                }
+            };
+            let msg = msg.iter().next().unwrap();
+            let body = msg.body().unwrap_or_default();
             let str = std::str::from_utf8(body).unwrap();
             println!("{}", str);
             messages.push(body.to_vec());
         }
 
         Ok(messages)
-    }
-}
-
-impl Drop for App {
-    fn drop(&mut self) {
-        self.imap.logout().unwrap();
     }
 }

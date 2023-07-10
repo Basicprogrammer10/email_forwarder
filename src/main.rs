@@ -11,3 +11,7 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+// Resources
+// https://github.com/lettre/lettre/tree/master
+// https://github.com/jonhoo/rust-imap/tree/main
