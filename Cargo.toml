@@ -3,12 +3,11 @@ name = "email_forwarder"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.71"
-imap = "2.4.1"
+imap = { version = "3.0.0-alpha.10" }
 lettre = "0.10.4"
+# rustls = "0.21.3"
 native-tls = "0.2.11"
 serde = { version = "1.0.170", features = ["derive"] }
 toml = "0.7.6"

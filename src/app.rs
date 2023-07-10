@@ -1,9 +1,14 @@
-use std::{fs, net::TcpStream, path::Path};
+use std::{
+    fs::{self, File},
+    net::TcpStream,
+    ops::{Deref, DerefMut},
+    path::Path,
+};
 
 use anyhow::Result;
-use imap::Session;
+use imap::{Client, Session};
 use lettre::{transport::smtp::authentication::Credentials, SmtpTransport};
-use native_tls::{TlsConnector, TlsStream};
+use native_tls::{Certificate, TlsStream};
 
 use crate::config::Config;
 
@@ -18,12 +23,21 @@ impl App {
         let raw_config = fs::read_to_string(config)?;
         let config = toml::from_str::<Config>(&raw_config)?;
 
-        let imap_tls = TlsConnector::builder().build()?;
-        let imap_client = imap::connect(
-            (config.imap.host.to_owned(), config.imap.port),
-            &config.imap.host,
-            &imap_tls,
-        )?;
+        let imap_cert = match config.imap.certificate {
+            Some(ref x) => Some(Certificate::from_pem(&fs::read(&x)?)?),
+            None => None,
+        };
+        let imap_client = imap::ClientBuilder::new(&config.imap.host, config.imap.port)
+            .starttls()
+            .connect(|domain, tcp| {
+                let mut conn = native_tls::TlsConnector::builder();
+                conn.danger_accept_invalid_certs(true);
+                if let Some(x) = imap_cert {
+                    conn.add_root_certificate(x);
+                }
+
+                Ok(conn.build().unwrap().connect(domain, tcp)?)
+            })?;
         let imap = imap_client
             .login(&config.imap.username, &config.imap.password)
             .unwrap();
@@ -40,28 +54,23 @@ impl App {
         Ok(Self { config, imap, smtp })
     }
 
-    pub fn check_emails(&mut self) -> Result<()> {
+    pub fn check_emails(&mut self) -> Result<Vec<Vec<u8>>> {
         self.imap.select("INBOX")?;
 
-        // fetch message number 1 in this mailbox, along with its RFC822 field.
-        // RFC 822 dictates the format of the body of e-mails
-        let messages = self.imap.fetch("1", "RFC822")?;
-        let message = if let Some(m) = messages.iter().next() {
-            m
-        } else {
-            return Ok(());
-        };
+        let mut messages = Vec::new();
+        for i in self.imap.fetch("1", "RFC822")?.iter() {
+            let body = i.body().unwrap_or_default();
+            let str = std::str::from_utf8(body).unwrap();
+            println!("{}", str);
+            messages.push(body.to_vec());
+        }
 
-        // extract the message's body
-        let body = message.body().expect("message did not have a body!");
-        let body = std::str::from_utf8(body)
-            .expect("message was not valid utf-8")
-            .to_string();
-
-        dbg!(body);
-
-        Ok(())
+        Ok(messages)
     }
 }
 
-// impl std::error::Error for  {}
+impl Drop for App {
+    fn drop(&mut self) {
+        self.imap.logout().unwrap();
+    }
+}

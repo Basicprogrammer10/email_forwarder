@@ -1,3 +1,5 @@
+#![feature(type_name_of_val)]
+
 use anyhow::Result;
 
 mod app;

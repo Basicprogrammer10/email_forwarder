@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -13,6 +15,7 @@ pub struct ImapConfig {
     pub port: u16,
     pub username: String,
     pub password: String,
+    pub certificate: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -21,6 +24,7 @@ pub struct SmtpConfig {
     pub port: u16,
     pub username: String,
     pub password: String,
+    pub certificate: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Debug)]
